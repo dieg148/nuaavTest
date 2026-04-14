@@ -97,33 +97,71 @@ Timeout was decreased to 10 seconds, since the app is a demo and it's very fast.
 
 ---
 
-🔐 Authentication Strategy (auth.setup + storageState)
+## 🔐 Authentication Strategy (auth.setup + storageState)
 
-This project uses Playwright’s storageState feature to avoid repeated logins and improve test performance.
+This project leverages Playwright’s **`storageState`** feature to avoid repeated logins and significantly improve test execution speed.
 
-🔹 How it works
-A dedicated setup file (auth.setup.ts) performs login once
-After successful login, browser state is saved:
-await page.context().storageState({
-  path: 'playwright/.auth/user.json',
-});
-Test projects reuse this state:
-use: {
-  storageState: 'playwright/.auth/user.json',
-}
-The setup project is configured as a dependency:
-{
-  name: 'setup',
-  testDir: './setup',
-  testMatch: /.*\.setup\.ts/,
-},
-{
-  name: 'chromium',
-  dependencies: ['setup'],
-}
-.
-.
-.
+---
+
+### 🔹 How It Works
+
+1. **Login is executed once**
+   A dedicated setup file (`auth.setup.ts`) performs the authentication step before any tests run.
+
+2. **Session state is persisted**
+   After a successful login, the browser context is saved to a file:
+
+   ```ts
+   await page.context().storageState({
+     path: 'playwright/.auth/user.json',
+   });
+   ```
+
+3. **Tests reuse the authenticated session**
+   All test projects load this saved state:
+
+   ```ts
+   use: {
+     storageState: 'playwright/.auth/user.json',
+   }
+   ```
+
+4. **Setup is configured as a dependency**
+   Ensures authentication runs before tests:
+
+   ```ts
+   {
+     name: 'setup',
+     testDir: './setup',
+     testMatch: /.*\.setup\.ts/,
+   },
+   {
+     name: 'chromium',
+     dependencies: ['setup'],
+   }
+   ```
+
+---
+
+### ⚠️ Test Isolation Note
+
+Tests that validate **invalid login scenarios** intentionally bypass the shared session to ensure correctness:
+
+```ts
+test.use({ storageState: undefined });
+```
+
+---
+
+### 🧠 Design Insight
+
+This approach balances **performance and isolation**:
+
+* Positive flows reuse authentication for speed
+* Negative scenarios run independently for accuracy
+
+---
+
 
 ---
 
